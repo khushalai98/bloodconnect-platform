@@ -1,0 +1,184 @@
+/* ============ SHARED PORTAL STYLES ============ */
+
+/* Sidebar User */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* Eligibility Badge */
+.sidebar-eligibility {
+  padding: 16px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.eligibility-badge {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.eligibility-badge.eligible {
+  background: rgba(0, 230, 118, 0.12);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+  color: var(--color-success);
+}
+
+.eligibility-badge.not-eligible {
+  background: rgba(255, 179, 0, 0.12);
+  border: 1px solid rgba(255, 179, 0, 0.3);
+  color: var(--color-warning);
+}
+
+/* Profile Header */
+.profile-header {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+/* Alert Row */
+.alert-row {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.02);
+  margin-bottom: 10px;
+  border: 1px solid var(--glass-border);
+  transition: all var(--transition-fast);
+}
+
+.alert-row:hover {
+  background: rgba(220, 20, 60, 0.04);
+}
+
+.alert-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Highlight Row */
+.highlight-row {
+  background: rgba(220, 20, 60, 0.08) !important;
+  border-color: rgba(220, 20, 60, 0.2) !important;
+}
+
+/* Badge Locked */
+.badge-locked {
+  opacity: 0.6;
+}
+
+/* Blood Groups Mini Grid (Blood Bank) */
+.blood-groups-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 12px;
+}
+
+.blood-mini-card {
+  text-align: center;
+  padding: 14px 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  cursor: default;
+}
+
+.blood-mini-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(220, 20, 60, 0.3);
+}
+
+.blood-mini-card.status-critical {
+  border-color: rgba(255, 23, 68, 0.3);
+  background: rgba(255, 23, 68, 0.05);
+}
+
+.blood-mini-card.status-high {
+  border-color: rgba(0, 230, 118, 0.2);
+}
+
+.mini-status {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  margin-top: 6px;
+  display: inline-block;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  display: none;
+}
+
+.toggle-track {
+  display: block;
+  width: 44px;
+  height: 24px;
+  background: rgba(255,255,255,0.15);
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: background var(--transition-base);
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--transition-base);
+}
+
+.toggle-switch input:checked + .toggle-track {
+  background: var(--color-primary);
+}
+
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateX(20px);
+}
+
+/* Mini gap */
+.gap-xs { gap: var(--space-xs); }
+
+/* Responsive Portal */
+@media (max-width: 768px) {
+  .blood-groups-mini-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 300;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .portal-main {
+    margin-left: 0;
+  }
+
+  .profile-header {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .blood-groups-mini-grid { grid-template-columns: repeat(2, 1fr); }
+}
