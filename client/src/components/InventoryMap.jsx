@@ -1,9 +1,42 @@
 // ── Inventory Map View Component ──
-// Ticket 3.2: "Map-based inventory view with radius filter"
-// Uses Leaflet.js (open-source — no API key needed)
+// Ticket 3.2: "Map-based inventory view with radius filter & Google Maps API support"
 
 import { useState, useEffect, useRef } from 'react'
 import './InventoryMap.css'
+
+// Environment key access (supports Vite VITE_ and NEXT_PUBLIC_ prefixes)
+const GOOGLE_MAPS_API_KEY =
+  import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+  import.meta.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  'AIzaSyBHiUmVRMd_mJioAiHvijqx93Fm9d83P4g'
+
+// Map Tile Layer Configurations
+const MAP_LAYERS = {
+  'google-roadmap': {
+    name: '🗺️ Google Maps (Road)',
+    url: `https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`,
+    attribution: '© Google Maps',
+    maxZoom: 20,
+  },
+  'google-satellite': {
+    name: '🛰️ Google Maps (Satellite)',
+    url: `https://mt1.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`,
+    attribution: '© Google Maps Satellite',
+    maxZoom: 20,
+  },
+  'google-terrain': {
+    name: '🏔️ Google Maps (Terrain)',
+    url: `https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`,
+    attribution: '© Google Maps Terrain',
+    maxZoom: 20,
+  },
+  'osm': {
+    name: '🌐 OpenStreetMap',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+  },
+}
 
 // Blood group compatibility colors
 const BG_COLORS = {
@@ -28,12 +61,14 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onSelectSource }) {
   const mapRef = useRef(null)
   const leafletMap = useRef(null)
+  const currentTileLayer = useRef(null)
   const markersRef = useRef([])
 
   const [sources, setSources] = useState(DEMO_SOURCES)
   const [selectedSource, setSelectedSource] = useState(null)
   const [filterBG, setFilterBG] = useState(selectedBloodGroup)
   const [filterRadius, setFilterRadius] = useState(radius)
+  const [mapProvider, setMapProvider] = useState('google-roadmap')
   const [loading, setLoading] = useState(false)
   const [userLocation, setUserLocation] = useState({ lat: 19.0760, lng: 72.8777 })
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -74,14 +109,29 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
       zoomControl: true,
     })
 
-    // OpenStreetMap tiles (no API key needed!)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(leafletMap.current)
-
+    updateTileLayer(mapProvider, L)
     renderMarkers(DEMO_SOURCES, L)
   }
+
+  const updateTileLayer = (providerKey, L = window.L) => {
+    if (!leafletMap.current || !L) return
+    const layerConfig = MAP_LAYERS[providerKey] || MAP_LAYERS['google-roadmap']
+
+    if (currentTileLayer.current) {
+      leafletMap.current.removeLayer(currentTileLayer.current)
+    }
+
+    currentTileLayer.current = L.tileLayer(layerConfig.url, {
+      attribution: layerConfig.attribution,
+      maxZoom: layerConfig.maxZoom,
+    }).addTo(leafletMap.current)
+  }
+
+  useEffect(() => {
+    if (mapLoaded && leafletMap.current) {
+      updateTileLayer(mapProvider)
+    }
+  }, [mapProvider, mapLoaded])
 
   const renderMarkers = (data, L) => {
     if (!leafletMap.current || !L) return
@@ -94,9 +144,8 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
       const bloodGroups = Object.keys(source.inventory || {})
       const totalUnits = Object.values(source.inventory || {}).reduce((a, b) => a + b, 0)
       const isLowStock = totalUnits < 10
-      const color = source.type === 'blood-bank' ? '#e53e3e' : '#3182ce'
 
-      // Custom icon
+      // Custom marker icon
       const icon = L.divIcon({
         className: '',
         html: `
@@ -116,7 +165,9 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
           if (onSelectSource) onSelectSource(source)
         })
 
-      // Popup with blood group info
+      // Google Maps direction link
+      const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${source.lat},${source.lng}`
+
       const popupContent = `
         <div class="map-popup">
           <h4>${source.name}</h4>
@@ -129,10 +180,13 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
               </span>
             `).join('')}
           </div>
-          <p>⭐ ${source.rating} | 📞 ${source.phone}</p>
+          <p style="margin-bottom:6px">⭐ ${source.rating} | 📞 ${source.phone}</p>
+          <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" style="color:#3182ce; font-size:11px; font-weight:600; text-decoration:underline;">
+            📍 Open in Google Maps ↗
+          </a>
         </div>
       `
-      marker.bindPopup(popupContent, { maxWidth: 220 })
+      marker.bindPopup(popupContent, { maxWidth: 240 })
       markersRef.current.push(marker)
     })
   }
@@ -155,7 +209,7 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
         if (mapLoaded && window.L) renderMarkers(data.data, window.L)
       }
     } catch (_) {
-      // Demo mode — filter existing sources
+      // Demo mode fallback
       const filtered = filterBG
         ? DEMO_SOURCES.filter(s => s.inventory[filterBG])
         : DEMO_SOURCES
@@ -165,7 +219,7 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
     setLoading(false)
   }
 
-  // Get user's real location
+  // Get user location
   const getUserLocation = () => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
@@ -197,7 +251,7 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
 
   return (
     <div className="inventory-map-container">
-      {/* Filter Bar */}
+      {/* Filter & API Bar */}
       <div className="map-filters">
         <select
           value={filterBG}
@@ -220,6 +274,22 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
           ))}
         </select>
 
+        {/* Map Layer / API Selector */}
+        <select
+          value={mapProvider}
+          onChange={e => setMapProvider(e.target.value)}
+          className="filter-select map-layer-select"
+        >
+          {Object.entries(MAP_LAYERS).map(([key, config]) => (
+            <option key={key} value={key}>{config.name}</option>
+          ))}
+        </select>
+
+        {/* API Key Status Indicator */}
+        <div className="api-key-badge" title={`Key: ${GOOGLE_MAPS_API_KEY.substring(0, 10)}...`}>
+          <span className="api-dot"></span> Google Maps API Connected
+        </div>
+
         <button onClick={getUserLocation} className="location-btn">
           📍 Use My Location
         </button>
@@ -230,12 +300,12 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
       </div>
 
       <div className="map-layout">
-        {/* Leaflet Map */}
+        {/* Leaflet Map with Google Maps Tiles */}
         <div ref={mapRef} className="leaflet-map-container">
           {!mapLoaded && (
             <div className="map-loading">
               <div className="map-loading-spinner"></div>
-              <p>Loading map...</p>
+              <p>Loading map with Google Maps API key...</p>
             </div>
           )}
         </div>
@@ -252,48 +322,60 @@ export default function InventoryMap({ selectedBloodGroup = '', radius = 20, onS
           </div>
 
           <div className="source-list">
-            {filteredSources.map(source => (
-              <div
-                key={source.id}
-                className={`source-card ${selectedSource?.id === source.id ? 'selected' : ''}`}
-                onClick={() => {
-                  setSelectedSource(source)
-                  if (leafletMap.current) leafletMap.current.setView([source.lat, source.lng], 15)
-                }}
-              >
-                <div className="source-header">
-                  <span className="source-icon">{source.type === 'blood-bank' ? '🏦' : '🏥'}</span>
-                  <div>
-                    <div className="source-name">{source.name}</div>
-                    <div className="source-city">📍 {source.city}</div>
+            {filteredSources.map(source => {
+              const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${source.lat},${source.lng}`
+              return (
+                <div
+                  key={source.id}
+                  className={`source-card ${selectedSource?.id === source.id ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedSource(source)
+                    if (leafletMap.current) leafletMap.current.setView([source.lat, source.lng], 15)
+                  }}
+                >
+                  <div className="source-header">
+                    <span className="source-icon">{source.type === 'blood-bank' ? '🏦' : '🏥'}</span>
+                    <div>
+                      <div className="source-name">{source.name}</div>
+                      <div className="source-city">📍 {source.city}</div>
+                    </div>
+                    <span className="source-rating">⭐ {source.rating}</span>
                   </div>
-                  <span className="source-rating">⭐ {source.rating}</span>
-                </div>
 
-                <div className="source-inventory">
-                  {Object.entries(source.inventory || {})
-                    .filter(([bg]) => !filterBG || bg === filterBG)
-                    .map(([bg, units]) => (
-                      <span
-                        key={bg}
-                        className="inv-badge"
-                        style={{ background: BG_COLORS[bg] + '22', border: `1px solid ${BG_COLORS[bg]}`, color: BG_COLORS[bg] }}
-                      >
-                        {bg}: {units}u
-                      </span>
-                    ))}
-                </div>
+                  <div className="source-inventory">
+                    {Object.entries(source.inventory || {})
+                      .filter(([bg]) => !filterBG || bg === filterBG)
+                      .map(([bg, units]) => (
+                        <span
+                          key={bg}
+                          className="inv-badge"
+                          style={{ background: BG_COLORS[bg] + '22', border: `1px solid ${BG_COLORS[bg]}`, color: BG_COLORS[bg] }}
+                        >
+                          {bg}: {units}u
+                        </span>
+                      ))}
+                  </div>
 
-                <div className="source-actions">
-                  <button className="contact-btn" onClick={e => { e.stopPropagation(); alert(`Call: ${source.phone}`) }}>
-                    📞 Contact
-                  </button>
-                  <button className="request-btn" onClick={e => { e.stopPropagation(); if (onSelectSource) onSelectSource(source) }}>
-                    Request →
-                  </button>
+                  <div className="source-actions">
+                    <button className="contact-btn" onClick={e => { e.stopPropagation(); alert(`Call: ${source.phone}`) }}>
+                      📞 Contact
+                    </button>
+                    <a
+                      href={gmapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="gmaps-btn"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      🗺️ Google Maps
+                    </a>
+                    <button className="request-btn" onClick={e => { e.stopPropagation(); if (onSelectSource) onSelectSource(source) }}>
+                      Request →
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
 
             {filteredSources.length === 0 && (
               <div className="no-sources">

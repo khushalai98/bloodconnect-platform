@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import InventoryMap from '../components/InventoryMap'
 import './Portal.css'
+
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: '📊', label: 'Dashboard' },
@@ -370,14 +372,7 @@ export default function DonorPortal() {
           {/* ── MAP ── */}
           {activeTab === 'map' && (
             <div className="animate-fade-in">
-              <div className="glass-card" style={{ height: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-                <div style={{ fontSize: '4rem' }}>🗺️</div>
-                <h3 style={{ fontWeight: 700 }}>Blood Availability Map</h3>
-                <p style={{ color: 'var(--color-text-muted)', textAlign: 'center' }}>Interactive map showing all blood banks and hospitals near Mumbai with real-time inventory.</p>
-                <button className="btn btn-primary" onClick={() => navigate('/hospital')}>
-                  Open Full Map View →
-                </button>
-              </div>
+              <InventoryMap selectedBloodGroup={donor.bloodGroup} />
             </div>
           )}
         </div>

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import InventoryMap from '../components/InventoryMap'
 import './Portal.css'
+
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
 
@@ -333,31 +335,7 @@ export default function HospitalPortal() {
           {/* ── MAP ── */}
           {activeTab === 'map' && (
             <div className="animate-fade-in">
-              <div className="flex gap-md" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-                {BLOOD_GROUPS.map(g => (
-                  <button key={g} className={`chip ${searchGroup === g ? 'active' : ''}`} onClick={() => setSearchGroup(g)}>
-                    {g}
-                  </button>
-                ))}
-              </div>
-              <div className="glass-card" style={{ height: 500, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 30% 40%, rgba(220,20,60,0.1), transparent 60%), radial-gradient(circle at 70% 60%, rgba(41,182,246,0.1), transparent 60%)', opacity: 0.8 }} />
-                <div style={{ fontSize: '5rem', zIndex: 1 }}>🗺️</div>
-                <div style={{ zIndex: 1, textAlign: 'center' }}>
-                  <h3 style={{ fontWeight: 700, marginBottom: 8 }}>Interactive Map</h3>
-                  <p style={{ color: 'var(--color-text-muted)', maxWidth: 400 }}>
-                    Real-time Leaflet.js map showing {NEARBY_INVENTORY.length} facilities within {searchRadius} km with <strong>{searchGroup}</strong> blood availability.
-                  </p>
-                </div>
-                <div style={{ zIndex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, width: '100%', maxWidth: 500, padding: '0 24px' }}>
-                  {NEARBY_INVENTORY.map((f, i) => (
-                    <div key={i} className="glass-card" style={{ padding: '12px !important', cursor: 'pointer' }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{f.bank}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{f.distance} • {f.available ? `${f.units} units` : 'Out of stock'}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <InventoryMap selectedBloodGroup={searchGroup} radius={searchRadius} />
             </div>
           )}
         </div>
